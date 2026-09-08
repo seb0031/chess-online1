@@ -36,27 +36,31 @@ function get(c) {
 function join(r, id, token, name) {
   name = String(name || "Joueur").trim().slice(0, 15) || "Joueur";
 
-  // Reconnexion avec le token
-  for (const c of ["w", "b"]) {
-    if (token && r.players[c].token === token) {
-      r.players[c].id = id;
-      r.players[c].name = name;
-      r.disc[c] = null;
-      return { color: c, token: r.players[c].token, reconnected: true };
+  // 1. Reconnexion : uniquement si le token correspond ET que le joueur était déconnecté ou réutilise sa socket
+  if (token) {
+    for (const c of ["w", "b"]) {
+      if (r.players[c].token === token) {
+        if (r.players[c].id === null || r.players[c].id === id) {
+          r.players[c].id = id;
+          r.players[c].name = name;
+          r.disc[c] = null;
+          return { color: c, token: r.players[c].token, reconnected: true };
+        }
+      }
     }
   }
 
-  // Attribution de la place pour le deuxième joueur (priorité aux Noirs)
-  if (!r.players.b.id) {
-    r.players.b.id = id;
-    r.players.b.name = name;
-    return { color: "b", token: r.players.b.token, reconnected: false };
-  }
-
+  // 2. Attribution de place pour un nouveau joueur
   if (!r.players.w.id) {
     r.players.w.id = id;
     r.players.w.name = name;
     return { color: "w", token: r.players.w.token, reconnected: false };
+  }
+
+  if (!r.players.b.id) {
+    r.players.b.id = id;
+    r.players.b.name = name;
+    return { color: "b", token: r.players.b.token, reconnected: false };
   }
 
   return null;

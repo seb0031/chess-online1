@@ -3,13 +3,11 @@
   let me = null, state = null, code = null, selected = null, promo = null, clocks = { w: 180000, b: 180000 }, last = performance.now();
   const can = $("board"), ctx = can.getContext("2d");
 
-  // Reconnexion automatique au socket si la connexion est interrompue
   socket.on("connect", () => {
-    if (code && me) {
-      const token = localStorage.getItem("chess_" + code);
-      if (token) {
-        socket.emit("join", { name: $("name")?.value || "Joueur", code, token });
-      }
+    const activeCode = sessionStorage.getItem("chess_code");
+    const activeToken = sessionStorage.getItem("chess_token");
+    if (activeCode && activeToken) {
+      socket.emit("join", { name: $("name")?.value || "Joueur", code: activeCode, token: activeToken });
     }
   });
 
@@ -159,13 +157,20 @@
     ChessAudio.end();
   }
 
-  $("endMenu").onclick = () => { $("end").classList.add("hidden"); Menu.show("menu"); };
+  $("endMenu").onclick = () => {
+    sessionStorage.removeItem("chess_code");
+    sessionStorage.removeItem("chess_token");
+    $("end").classList.add("hidden");
+    Menu.show("menu");
+  };
+
   $("gameMenu").onclick = () => Menu.show("menu");
 
   socket.on("roomCreated", x => {
     me = x.color;
     code = x.code;
-    localStorage.setItem("chess_" + code, x.token);
+    sessionStorage.setItem("chess_code", code);
+    sessionStorage.setItem("chess_token", x.token);
     $("roomCode").textContent = code;
     Menu.show("waiting");
     update(x.snapshot);
@@ -174,7 +179,8 @@
   socket.on("joined", x => {
     me = x.color;
     code = x.code;
-    localStorage.setItem("chess_" + code, x.token);
+    sessionStorage.setItem("chess_code", code);
+    sessionStorage.setItem("chess_token", x.token);
     $("end").classList.add("hidden");
     Menu.show("game");
     update(x.snapshot);
@@ -202,6 +208,6 @@
 
   window.ChessGame = {
     create: (name, time) => socket.emit("create", { name, time }),
-    join: (name, c) => socket.emit("join", { name, code: c, token: localStorage.getItem("chess_" + c) })
+    join: (name, c) => socket.emit("join", { name, code: c, token: null })
   };
 })();

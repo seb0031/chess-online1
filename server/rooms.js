@@ -16,8 +16,8 @@ function create(time = 3) {
   const r = {
     code: code(),
     players: {
-      w: { id: null, token: crypto.randomBytes(24).toString("hex"), name: "Blancs" },
-      b: { id: null, token: crypto.randomBytes(24).toString("hex"), name: "Noirs" }
+      w: { id: null, token: crypto.randomBytes(24).toString("hex"), name: "Blancs", claimed: false },
+      b: { id: null, token: crypto.randomBytes(24).toString("hex"), name: "Noirs", claimed: false }
     },
     state: initialState(),
     time,
@@ -36,31 +36,46 @@ function get(c) {
 function join(r, id, token, name) {
   name = String(name || "Joueur").trim().slice(0, 15) || "Joueur";
 
-  // 1. Reconnexion : uniquement si le token correspond ET que le joueur était déconnecté ou réutilise sa socket
+  // Reconnexion avec jeton
   if (token) {
     for (const c of ["w", "b"]) {
       if (r.players[c].token === token) {
-        if (r.players[c].id === null || r.players[c].id === id) {
-          r.players[c].id = id;
-          r.players[c].name = name;
-          r.disc[c] = null;
-          return { color: c, token: r.players[c].token, reconnected: true };
-        }
+        r.players[c].id = id;
+        r.players[c].name = name;
+        r.players[c].claimed = true;
+        r.disc[c] = null;
+        return { color: c, token: r.players[c].token, reconnected: true };
       }
     }
   }
 
-  // 2. Attribution de place pour un nouveau joueur
+  // Attribution : Créateur = Blancs (w)
+  if (!r.players.w.claimed) {
+    r.players.w.id = id;
+    r.players.w.name = name;
+    r.players.w.claimed = true;
+    return { color: "w", token: r.players.w.token, reconnected: false };
+  }
+
+  // Attribution : Adversaire = Noirs (b)
+  if (!r.players.b.claimed) {
+    r.players.b.id = id;
+    r.players.b.name = name;
+    r.players.b.claimed = true;
+    return { color: "b", token: r.players.b.token, reconnected: false };
+  }
+
+  // Reconnexion de secours sans jeton si un slot s'est déconnecté
   if (!r.players.w.id) {
     r.players.w.id = id;
     r.players.w.name = name;
-    return { color: "w", token: r.players.w.token, reconnected: false };
+    return { color: "w", token: r.players.w.token, reconnected: true };
   }
 
   if (!r.players.b.id) {
     r.players.b.id = id;
     r.players.b.name = name;
-    return { color: "b", token: r.players.b.token, reconnected: false };
+    return { color: "b", token: r.players.b.token, reconnected: true };
   }
 
   return null;

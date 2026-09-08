@@ -22,8 +22,24 @@
 
   function sq(s) { return [8 - +s[1], s.charCodeAt(0) - 97]; }
   function ns(r, c) { return String.fromCharCode(97 + c) + (8 - r); }
-  function orient(s) { let [f, r] = [s.charCodeAt(0) - 97, +s[1] - 1]; return me === "b" ? [7 - f, r] : [f, 7 - r]; }
-  function point(e) { const r = can.getBoundingClientRect(), z = r.width / 8, x = Math.floor((e.clientX - r.left) / z), y = Math.floor((e.clientY - r.top) / z); return me === "b" ? String.fromCharCode(104 - y) + (x + 1) : String.fromCharCode(97 + x) + (8 - y); }
+
+  function orient(s) {
+    const f = s.charCodeAt(0) - 97;
+    const r = +s[1] - 1;
+    return me === "b" ? [7 - f, r] : [f, 7 - r];
+  }
+
+  function point(e) {
+    const rect = can.getBoundingClientRect();
+    const zx = rect.width / 8;
+    const zy = rect.height / 8;
+    const x = Math.max(0, Math.min(7, Math.floor((e.clientX - rect.left) / zx)));
+    const y = Math.max(0, Math.min(7, Math.floor((e.clientY - rect.top) / zy)));
+    const f = me === "b" ? 7 - x : x;
+    const r = me === "b" ? y : 7 - y;
+    return String.fromCharCode(97 + f) + (r + 1);
+  }
+
   function piece(s) { const [r, c] = sq(s); return state.board[r][c]; }
 
   function moves(r, c) {
@@ -38,7 +54,7 @@
     };
     if (t === "p") {
       let d = me === "w" ? -1 : 1;
-      if (!state.board[r + d]?.[c]) {
+      if (r + d >= 0 && r + d < 8 && !state.board[r + d][c]) {
         add(r + d, c);
         if ((me === "w" ? r === 6 : r === 1) && !state.board[r + 2 * d][c]) add(r + 2 * d, c);
       }
